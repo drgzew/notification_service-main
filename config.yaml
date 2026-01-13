@@ -1,0 +1,17 @@
+database:
+  host: localhost
+  port: 5432
+  username: postgres
+  password: password
+  name: notifications
+  ssl_mode: disable
+
+kafka:
+  host: localhost
+  port: 9092
+  event_notification_topic: event_notifications
+  notification_status_topic: notification_status
+
+NotificationServiceSettings:
+  notification_batch_size: 10
+  notification_timeout: 1s
