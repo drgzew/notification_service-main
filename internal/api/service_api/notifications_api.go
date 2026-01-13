@@ -10,7 +10,6 @@ import (
 	"notification_service/internal/services/notifications"
 )
 
-// InitNotificationServiceAPI создает роуты для NotificationService
 func InitNotificationServiceAPI(service *notifications.NotificationService) *gin.Engine {
 	r := gin.Default()
 
