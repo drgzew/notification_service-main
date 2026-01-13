@@ -1,0 +1,48 @@
+definitions:
+  models.Notification:
+    properties:
+      channel:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      recipient:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /notifications:
+    post:
+      consumes:
+      - application/json
+      description: Sends a notification via NotificationService
+      parameters:
+      - description: Notification payload
+        in: body
+        name: notification
+        required: true
+        schema:
+          $ref: '#/definitions/models.Notification'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Notification'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Create a new notification
+      tags:
+      - notifications
+swagger: "2.0"

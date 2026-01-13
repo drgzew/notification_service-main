@@ -10,9 +10,21 @@ import (
 	"notification_service/internal/services/notifications"
 )
 
+// InitNotificationServiceAPI создает роуты для NotificationService
 func InitNotificationServiceAPI(service *notifications.NotificationService) *gin.Engine {
 	r := gin.Default()
 
+	// POST /notifications — создать новое уведомление
+	// @Summary Create notification
+	// @Description Sends a notification via NotificationService
+	// @Tags notifications
+	// @Accept  json
+	// @Produce  json
+	// @Param notification body models.Notification true "Notification payload"
+	// @Success 201 {object} map[string]string
+	// @Failure 400 {object} map[string]string
+	// @Failure 500 {object} map[string]string
+	// @Router /notifications [post]
 	r.POST("/notifications", func(c *gin.Context) {
 		var req struct {
 			Recipient string `json:"recipient"`
@@ -38,14 +50,14 @@ func InitNotificationServiceAPI(service *notifications.NotificationService) *gin
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "id": notification.ID})
-	})
-
-	go func() {
-		if err := r.Run(":8080"); err != nil {
-			panic("Ошибка запуска Notification API: " + err.Error())
-		}
-	}()
+		c.JSON(http.StatusCreated, gin.H{"status": "ok", "id": notification.ID})
+	})  
 
 	return r
+}
+
+func WrapSwaggerHandler(handler http.Handler) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		handler.ServeHTTP(c.Writer, c.Request)
+	}
 }
