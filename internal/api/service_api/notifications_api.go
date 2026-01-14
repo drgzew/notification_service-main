@@ -11,48 +11,44 @@ import (
 )
 
 func InitNotificationServiceAPI(service *notifications.NotificationService) *gin.Engine {
-	r := gin.Default()
+	router := gin.Default()
 
 	// POST /notifications — создать новое уведомление
-	// @Summary Create notification
-	// @Description Sends a notification via NotificationService
-	// @Tags notifications
-	// @Accept  json
-	// @Produce  json
-	// @Param notification body models.Notification true "Notification payload"
-	// @Success 201 {object} map[string]string
-	// @Failure 400 {object} map[string]string
-	// @Failure 500 {object} map[string]string
-	// @Router /notifications [post]
-	r.POST("/notifications", func(c *gin.Context) {
+	router.POST("/notifications", func(c *gin.Context) {
 		var req struct {
-			Recipient string `json:"recipient"`
-			Channel   string `json:"channel"`
-			Message   string `json:"message"`
+			Recipient string `json:"recipient" binding:"required"`
+			Message   string `json:"message" binding:"required"`
 		}
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid request payload: " + err.Error(),
+			})
 			return
 		}
 
+		now := time.Now()
 		notification := &models.Notification{
 			ID:        uuid.NewString(),
 			Recipient: req.Recipient,
-			Channel:   req.Channel,
 			Message:   req.Message,
+			CreatedAt: &now,
 		}
-		now := time.Now()
-		notification.CreatedAt = &now
 
 		if err := service.SendNotification(c.Request.Context(), notification); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to send notification: " + err.Error(),
+			})
 			return
 		}
 
-		c.JSON(http.StatusCreated, gin.H{"status": "ok", "id": notification.ID})
-	})  
+		c.JSON(http.StatusCreated, gin.H{
+			"status": "ok",
+			"id":     notification.ID,
+		})
+	})
 
-	return r
+	return router
 }
 
 func WrapSwaggerHandler(handler http.Handler) gin.HandlerFunc {

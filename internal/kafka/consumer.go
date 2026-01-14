@@ -29,17 +29,24 @@ func NewNotificationConsumer(processor NotificationProcessor, brokers []string, 
 
 func (c *NotificationConsumer) Start(ctx context.Context) error {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     c.kafkaBroker,
-		Topic:       c.topicName,
-		StartOffset: kafka.FirstOffset,
+		Brokers: c.kafkaBroker,
+		Topic:   c.topicName,
+		GroupID: "notification-service",
 	})
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Println("Error closing Kafka reader:", err)
+		}
+	}()
 
 	for {
+		log.Println("Waiting for Kafka message...")
 		msg, err := reader.ReadMessage(ctx)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("Kafka message received: key=%s offset=%d", string(msg.Key), msg.Offset)
 
 		var notification models.Notification
 		if err := json.Unmarshal(msg.Value, &notification); err != nil {

@@ -66,9 +66,6 @@ const docTemplate = `{
         "models.Notification": {
             "type": "object",
             "properties": {
-                "channel": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },

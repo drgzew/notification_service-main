@@ -3,9 +3,10 @@ package notifications
 import (
 	"context"
 	"time"
+	"log"
 
 	"notification_service/internal/models"
-	notificationproducer "notification_service/internal/kafka"
+	"notification_service/internal/kafka"
 )
 
 type NotificationStorage interface {
@@ -14,51 +15,45 @@ type NotificationStorage interface {
 }
 
 type NotificationServiceInterface interface {
-	Handle(ctx context.Context, n *models.Notification) error
+    Handle(ctx context.Context, n *models.Notification) error
 }
 
 type NotificationService struct {
-	notificationStorage NotificationStorage
-	producer            *notificationproducer.NotificationProducer
-	batchSize           int
-	timeout             time.Duration
+	storage NotificationStorage
+	producer *kafka.NotificationProducer
+	batchSize int
+	timeout time.Duration
 }
 
-func NewNotificationService(ctx context.Context, notificationStorage NotificationStorage, batchSize int, timeout time.Duration, producer *notificationproducer.NotificationProducer) *NotificationService {
+func NewNotificationService(
+	ctx context.Context, storage NotificationStorage, producer *kafka.NotificationProducer, batchSize int, timeout time.Duration) *NotificationService {
 	return &NotificationService{
-		notificationStorage: notificationStorage,
-		producer:            producer,
-		batchSize:           batchSize,
-		timeout:             timeout,
-	}
-}
-
-func (s *NotificationService) Handle(ctx context.Context, n *models.Notification) error {
-	return s.SendNotification(ctx, n)
+		storage: storage, producer: producer, batchSize: batchSize, timeout: timeout}
 }
 
 func (s *NotificationService) SendNotification(ctx context.Context, n *models.Notification) error {
+
 	status := &models.NotificationStatus{
 		NotificationID: n.ID,
 		Status:         "PENDING",
-		SentAt:         nil,
 	}
-
-	if err := s.notificationStorage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
+	if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
 		return err
 	}
 
-	err := s.mockSend(n)
-
+	err := s.producer.SendNotification(ctx, n)
 	if err != nil {
 		status.Status = "FAILED"
 		status.ErrorMessage = err.Error()
+		log.Printf("Failed to send notification ID=%s: %v", n.ID, err)
 	} else {
 		status.Status = "SENT"
 		now := time.Now()
 		status.SentAt = &now
+		log.Printf("Notification ID=%s sent successfully", n.ID)
 	}
-	return s.notificationStorage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status})
+
+	return s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status})
 }
 
 func (s *NotificationService) SendBatch(ctx context.Context, notifications []*models.Notification) error {
@@ -75,11 +70,10 @@ func (s *NotificationService) SendBatch(ctx context.Context, notifications []*mo
 			batchStatuses[j] = &models.NotificationStatus{
 				NotificationID: n.ID,
 				Status:         "PENDING",
-				SentAt:         nil,
 			}
 		}
 
-		if err := s.notificationStorage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
+		if err := s.storage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
 			return err
 		}
 
@@ -90,40 +84,28 @@ func (s *NotificationService) SendBatch(ctx context.Context, notifications []*mo
 		}
 
 		for j, n := range batch {
-			err := s.mockSend(n)
+			err := s.producer.SendNotification(ctx, n)
 			status := batchStatuses[j]
+
 			if err != nil {
 				status.Status = "FAILED"
 				status.ErrorMessage = err.Error()
+				log.Printf("Failed to send notification ID=%s: %v", n.ID, err)
 			} else {
 				status.Status = "SENT"
 				now := time.Now()
 				status.SentAt = &now
+				log.Printf("Notification ID=%s sent successfully", n.ID)
 			}
 		}
 
-		if err := s.notificationStorage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
+		if err := s.storage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *NotificationService) GetStatus(ctx context.Context, notificationID string) (*models.NotificationStatus, error) {
-	statuses, err := s.notificationStorage.GetNotificationStatusByIDs(ctx, []string{notificationID})
-	if err != nil {
-		return nil, err
-	}
-	if len(statuses) == 0 {
-		return nil, nil
-	}
-	return statuses[0], nil
-}
-
-func (s *NotificationService) GetStatuses(ctx context.Context, ids []string) ([]*models.NotificationStatus, error) {
-	return s.notificationStorage.GetNotificationStatusByIDs(ctx, ids)
-}
-
-func (s *NotificationService) mockSend(n *models.Notification) error {
-	return nil
+func (s *NotificationService) Handle(ctx context.Context, n *models.Notification) error {
+    return s.SendNotification(ctx, n)
 }

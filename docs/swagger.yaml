@@ -1,8 +1,6 @@
 definitions:
   models.Notification:
     properties:
-      channel:
-        type: string
       created_at:
         type: string
       id:
