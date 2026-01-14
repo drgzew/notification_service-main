@@ -12,6 +12,7 @@ import (
 type NotificationStorage interface {
 	UpdateNotificationStatus(ctx context.Context, statuses []*models.NotificationStatus) error
 	GetNotificationStatusByIDs(ctx context.Context, IDs []string) ([]*models.NotificationStatus, error)
+	AddNotification(ctx context.Context, n *models.Notification) error
 }
 
 type NotificationServiceInterface interface {
@@ -41,6 +42,9 @@ func (s *NotificationService) SendNotification(ctx context.Context, n *models.No
 		return err
 	}
 
+	if err := s.storage.AddNotification(ctx, n); err != nil {
+    return err
+}
 	err := s.producer.SendNotification(ctx, n)
 	if err != nil {
 		status.Status = "FAILED"

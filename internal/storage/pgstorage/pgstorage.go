@@ -34,12 +34,19 @@ func NewPGStorage(connString string) (*PGStorage, error) {
 
 func (s *PGStorage) initTables() error {
 	sql := `
+	CREATE TABLE IF NOT EXISTS notification (
+		id TEXT PRIMARY KEY,
+		recipient TEXT NOT NULL,
+		message TEXT NOT NULL,
+		created_at TIMESTAMPTZ
+	);
+
 	CREATE TABLE IF NOT EXISTS notification_status (
 		notification_id TEXT PRIMARY KEY,
 		status TEXT NOT NULL,
 		error TEXT,
 		sent_at TIMESTAMPTZ
-	)`
+	);`
 	_, err := s.db.Exec(context.Background(), sql)
 	if err != nil {
 		return errors.Wrap(err, "initTables")

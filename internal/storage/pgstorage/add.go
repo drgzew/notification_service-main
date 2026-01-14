@@ -35,3 +35,12 @@ func (s *PGStorage) UpdateNotificationStatus(ctx context.Context, statuses []*mo
 	return tx.Commit(ctx)
 }
 
+func (s *PGStorage) AddNotification(ctx context.Context, n *models.Notification) error {
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO notification(id, recipient, message, created_at) VALUES($1, $2, $3, $4)`,
+		n.ID, n.Recipient, n.Message, n.CreatedAt,
+	)
+	return err
+}
+
+
