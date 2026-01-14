@@ -5,6 +5,4 @@
 - Docker + Docker Compose (для локальных контейнеров Postgres и Kafka)
 
 
-docker compose up -d zookeeper kafka
-docker compose up -d postgres 
-docker compose up app
+-
