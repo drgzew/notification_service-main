@@ -11,6 +11,10 @@ import (
 	"notification_service/internal/models"
 )
 
+type NotificationProducerInterface interface {
+	SendNotification(ctx context.Context, n *models.Notification) error
+}
+
 type NotificationProducer struct {
 	writer *kafka.Writer
 	topic  string

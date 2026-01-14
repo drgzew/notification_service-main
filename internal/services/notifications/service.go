@@ -16,35 +16,38 @@ type NotificationStorage interface {
 }
 
 type NotificationServiceInterface interface {
-    Handle(ctx context.Context, n *models.Notification) error
+	Handle(ctx context.Context, n *models.Notification) error
 }
 
 type NotificationService struct {
-	storage NotificationStorage
-	producer *kafka.NotificationProducer
+	storage   NotificationStorage
+	producer  kafka.NotificationProducerInterface
 	batchSize int
-	timeout time.Duration
+	timeout   time.Duration
 }
 
 func NewNotificationService(
-	ctx context.Context, storage NotificationStorage, producer *kafka.NotificationProducer, batchSize int, timeout time.Duration) *NotificationService {
+	ctx context.Context, storage NotificationStorage, producer kafka.NotificationProducerInterface, batchSize int, timeout time.Duration) *NotificationService {
+
 	return &NotificationService{
-		storage: storage, producer: producer, batchSize: batchSize, timeout: timeout}
+		storage: storage, producer: producer, batchSize: batchSize, timeout: timeout,
+	}
 }
 
 func (s *NotificationService) SendNotification(ctx context.Context, n *models.Notification) error {
-
 	status := &models.NotificationStatus{
 		NotificationID: n.ID,
 		Status:         "PENDING",
 	}
+
 	if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
 		return err
 	}
 
 	if err := s.storage.AddNotification(ctx, n); err != nil {
-    return err
-}
+		return err
+	}
+
 	err := s.producer.SendNotification(ctx, n)
 	if err != nil {
 		status.Status = "FAILED"
@@ -111,5 +114,5 @@ func (s *NotificationService) SendBatch(ctx context.Context, notifications []*mo
 }
 
 func (s *NotificationService) Handle(ctx context.Context, n *models.Notification) error {
-    return s.SendNotification(ctx, n)
+	return s.SendNotification(ctx, n)
 }
