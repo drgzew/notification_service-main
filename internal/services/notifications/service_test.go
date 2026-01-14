@@ -5,13 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"notification_service/internal/models"
 	mocks "notification_service/internal/services/notifications/mocks"
-
-
 )
 
 type NotificationServiceTestSuite struct {
@@ -22,23 +20,33 @@ type NotificationServiceTestSuite struct {
 
 func (suite *NotificationServiceTestSuite) SetupTest() {
 	suite.mockStore = &mocks.NotificationStorage{}
-	suite.service = &NotificationService{
-		notificationStorage: suite.mockStore,
-		batchSize:           2,
-		timeout:             10 * time.Millisecond,
-	}
+	suite.service = NewNotificationService(
+		context.Background(),
+		suite.mockStore,
+		2,                 
+		5*time.Millisecond, 
+		nil,              
+	)
 }
 
 func (suite *NotificationServiceTestSuite) TestSendNotification_Success() {
 	ctx := context.Background()
 	n := &models.Notification{ID: "1", Recipient: "test@example.com", Message: "Hello"}
 
-	suite.mockStore.On("UpdateNotificationStatus", ctx, mock.Anything).Return(nil).Twice()
+	suite.mockStore.
+		On("UpdateNotificationStatus", ctx, mock.MatchedBy(func(statuses []*models.NotificationStatus) bool {
+			return len(statuses) == 1 && statuses[0].Status == "PENDING"
+		})).Return(nil)
+
+	suite.mockStore.
+		On("UpdateNotificationStatus", ctx, mock.MatchedBy(func(statuses []*models.NotificationStatus) bool {
+			return len(statuses) == 1 && statuses[0].Status == "SENT"
+		})).Return(nil)
 
 	err := suite.service.SendNotification(ctx, n)
 	assert.NoError(suite.T(), err)
 
-	suite.mockStore.AssertNumberOfCalls(suite.T(), "UpdateNotificationStatus", 2)
+	suite.mockStore.AssertExpectations(suite.T())
 }
 
 func (suite *NotificationServiceTestSuite) TestSendBatch_Success() {
@@ -53,12 +61,14 @@ func (suite *NotificationServiceTestSuite) TestSendBatch_Success() {
 
 	err := suite.service.SendBatch(ctx, notifs)
 	assert.NoError(suite.T(), err)
+
 	suite.mockStore.AssertExpectations(suite.T())
 }
 
 func (suite *NotificationServiceTestSuite) TestGetStatus() {
 	ctx := context.Background()
 	status := &models.NotificationStatus{NotificationID: "1", Status: "SENT"}
+
 	suite.mockStore.On("GetNotificationStatusByIDs", ctx, []string{"1"}).Return([]*models.NotificationStatus{status}, nil)
 
 	got, err := suite.service.GetStatus(ctx, "1")
@@ -72,6 +82,7 @@ func (suite *NotificationServiceTestSuite) TestGetStatuses() {
 		{NotificationID: "1", Status: "SENT"},
 		{NotificationID: "2", Status: "FAILED"},
 	}
+
 	suite.mockStore.On("GetNotificationStatusByIDs", ctx, []string{"1", "2"}).Return(statuses, nil)
 
 	got, err := suite.service.GetStatuses(ctx, []string{"1", "2"})
