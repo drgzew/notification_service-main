@@ -1,5 +1,5 @@
 database:
-  host: localhost
+  host: postgres
   port: 5432
   username: postgres
   password: password
@@ -7,7 +7,7 @@ database:
   ssl_mode: disable
 
 kafka:
-  host: localhost
+  host: kafka       
   port: 9092
   event_notification_topic: event_notifications
   notification_status_topic: notification_status

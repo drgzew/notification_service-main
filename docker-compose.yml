@@ -1,34 +1,48 @@
 version: "3.8"
+
 services:
   postgres:
-    image: postgres:15
-    restart: unless-stopped
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: notifications
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
 
   zookeeper:
-    image: bitnami/zookeeper:latest
+    image: confluentinc/cp-zookeeper:latest
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOOKEEPER_CLIENT_PORT: 2181
     ports:
       - "2181:2181"
-
   kafka:
-    image: bitnami/kafka:latest
+    image: confluentinc/cp-kafka:7.9.1
+    depends_on:
+      - zookeeper
     environment:
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       ALLOW_PLAINTEXT_LISTENER: "yes"
     ports:
       - "9092:9092"
+      - "29092:29092"
 
-volumes:
-  pgdata:
+  app:
+    build: .
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      CONFIG_PATH: /app/config.yaml
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080" 
+    command: go run cmd/app/main.go --config /app/config.yaml

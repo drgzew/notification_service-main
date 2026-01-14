@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
+	"log"
+	"flag"
 	"fmt"
-	"os"
 
 	"notification_service/config"
 	api "notification_service/internal/api/service_api"
@@ -13,13 +14,19 @@ import (
 )
 
 func main() {
-	cfg, err := config.LoadConfig(os.Getenv("configPath"))
-	if err != nil {
-		panic(fmt.Sprintf("Ошибка парсинга файла конфигурации: %v", err))
-	}
+    configPath := flag.String("config", "", "path to config file")
+    flag.Parse()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+    if *configPath == "" {
+        log.Fatal("config path is required: use --config")
+    }
+
+	ctx := context.Background()
+
+    cfg, err := config.LoadConfig(*configPath)
+    if err != nil {
+        log.Fatal(err)
+    }
 
 	notificationStorage := bootstrap.InitPGStorage(cfg)
 	notificationProducer := bootstrap.InitNotificationProducer(cfg)
