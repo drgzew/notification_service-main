@@ -44,7 +44,7 @@ func (c *NotificationConsumer) consumeTopic(ctx context.Context, topic string) {
 		Brokers:     c.kafkaBroker,
 		Topic:       topic,
 		GroupID:     c.groupID + "-" + topic, // отдельный groupID на каждый топик
-		StartOffset: kafka.FirstOffset,       // читаем с начала
+		StartOffset: kafka.FirstOffset,   
 	})
 	defer func() {
 		if err := reader.Close(); err != nil {

@@ -13,7 +13,8 @@ type NotificationStatus struct {
 	NotificationID string     `db:"notification_id"` 
 	OldStatus      string     `db:"old_status"`      
 	Status         string     `db:"status"`          
-	ErrorMessage   string     `db:"error"`           
+	ErrorMessage   string     `db:"error"` 
+	CreatedAt      *time.Time `json:"created_at"`          
 	SentAt         *time.Time `db:"sent_at"`      
 	UpdatedAt      time.Time  `db:"updated_at"`     
 }

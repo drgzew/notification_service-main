@@ -29,5 +29,5 @@ func (p *NotificationProcessor) HandleNotification(ctx context.Context, notifica
 func (p *NotificationProcessor) HandleNotificationStatus(ctx context.Context, status *models.NotificationStatus) error {
 	fmt.Printf("Обрабатываем статус уведомления ID=%s: %s\n",
 		status.NotificationID, status.Status)
-	return nil // пока просто логируем
+	return nil
 }

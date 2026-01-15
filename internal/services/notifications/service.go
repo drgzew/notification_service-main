@@ -42,7 +42,9 @@ func (s *NotificationService) SendNotification(ctx context.Context, n *models.No
     status := &models.NotificationStatus{
         NotificationID: n.ID,
         Status:         "PENDING",
+        CreatedAt:      n.CreatedAt, // время создания уведомления
     }
+
     if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
         return err
     }
@@ -55,7 +57,7 @@ func (s *NotificationService) SendNotification(ctx context.Context, n *models.No
     } else {
         status.Status = "SENT"
         now := time.Now()
-        status.SentAt = &now
+        status.SentAt = &now // Время фактической отправки
         log.Printf("Notification ID=%s sent successfully", n.ID)
     }
 

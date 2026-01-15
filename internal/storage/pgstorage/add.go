@@ -37,12 +37,19 @@ func (s *PGStorage) UpdateNotificationStatus(ctx context.Context, statuses []*mo
 	`
 
 	for _, ns := range statuses {
-		
+		var oldStatus string
+		err := tx.QueryRow(ctx, `SELECT status FROM notification_status WHERE notification_id=$1`, ns.NotificationID).Scan(&oldStatus)
+		if err != nil && err.Error() != "no rows in result set" {
+			tx.Rollback(ctx)
+			log.Printf("Failed to get old status for %s: %v", ns.NotificationID, err)
+			return err
+		}
+		ns.OldStatus = oldStatus
 		ns.UpdatedAt = time.Now()
 
 		log.Printf("Updating status for notification ID=%s: %s -> %s", ns.NotificationID, ns.OldStatus, ns.Status)
 
-		_, err := tx.Exec(ctx, stmt,
+		_, err = tx.Exec(ctx, stmt,
 			ns.NotificationID,
 			ns.Status,
 			ns.OldStatus,
@@ -64,7 +71,6 @@ func (s *PGStorage) UpdateNotificationStatus(ctx context.Context, statuses []*mo
 
 	return nil
 }
-
 
 func (s *PGStorage) AddNotification(ctx context.Context, n *models.Notification) error {
 	_, err := s.db.Exec(ctx,
