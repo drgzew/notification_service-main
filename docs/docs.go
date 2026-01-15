@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/notifications": {
             "post": {
-                "description": "Sends a notification via NotificationService",
+                "description": "Создает новое уведомление для указанного получателя",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "notifications"
                 ],
-                "summary": "Create a new notification",
+                "summary": "Создать уведомление",
                 "parameters": [
                     {
                         "description": "Notification payload",
@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Notification"
+                            "$ref": "#/definitions/notifications_api.notificationsRequest"
                         }
                     }
                 ],
@@ -43,19 +43,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Notification"
+                            "$ref": "#/definitions/notifications_api.notificationsResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/notifications_api.errorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/notifications_api.errorResponse"
                         }
                     }
                 }
@@ -63,19 +63,36 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.Notification": {
+        "notifications_api.errorResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "error": {
                     "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
+                }
+            }
+        },
+        "notifications_api.notificationsRequest": {
+            "type": "object",
+            "required": [
+                "message",
+                "recipient"
+            ],
+            "properties": {
                 "message": {
                     "type": "string"
                 },
                 "recipient": {
+                    "type": "string"
+                }
+            }
+        },
+        "notifications_api.notificationsResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }

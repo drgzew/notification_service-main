@@ -1,13 +1,24 @@
 definitions:
-  models.Notification:
+  notifications_api.errorResponse:
     properties:
-      created_at:
+      error:
         type: string
-      id:
-        type: string
+    type: object
+  notifications_api.notificationsRequest:
+    properties:
       message:
         type: string
       recipient:
+        type: string
+    required:
+    - message
+    - recipient
+    type: object
+  notifications_api.notificationsResponse:
+    properties:
+      id:
+        type: string
+      status:
         type: string
     type: object
 info:
@@ -17,30 +28,30 @@ paths:
     post:
       consumes:
       - application/json
-      description: Sends a notification via NotificationService
+      description: Создает новое уведомление для указанного получателя
       parameters:
       - description: Notification payload
         in: body
         name: notification
         required: true
         schema:
-          $ref: '#/definitions/models.Notification'
+          $ref: '#/definitions/notifications_api.notificationsRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Notification'
+            $ref: '#/definitions/notifications_api.notificationsResponse'
         "400":
-          description: Bad request
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/notifications_api.errorResponse'
         "500":
-          description: Internal error
+          description: Internal Server Error
           schema:
-            type: string
-      summary: Create a new notification
+            $ref: '#/definitions/notifications_api.errorResponse'
+      summary: Создать уведомление
       tags:
       - notifications
 swagger: "2.0"
