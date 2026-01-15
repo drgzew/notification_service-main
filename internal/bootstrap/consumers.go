@@ -11,8 +11,5 @@ import (
 
 func InitNotificationConsumer(cfg *config.Config, processor *processors.NotificationProcessor) *kafka.NotificationConsumer {
 	brokers := []string{fmt.Sprintf("%s:%d", cfg.Kafka.Host, cfg.Kafka.Port)}
-	return kafka.NewNotificationConsumer(processor, brokers, []string{
-		cfg.Kafka.EventNotificationTopic,
-		cfg.Kafka.NotificationStatusTopic,
-	}, "notification-service")
+	return kafka.NewNotificationConsumer(processor, brokers, []string{cfg.Kafka.EventNotificationTopic, cfg.Kafka.NotificationStatusTopic}, "notification-service")
 }
