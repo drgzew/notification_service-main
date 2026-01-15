@@ -38,6 +38,14 @@ services:
     ports:
       - "9092:9092"
 
+  kafka-ui:
+      container_name: kafka-ui
+      image: provectuslabs/kafka-ui:latest
+      ports:
+        - 8082:8080
+      environment:
+        DYNAMIC_CONFIG_ENABLED: true
+        
   app:
     build: .
     depends_on:
