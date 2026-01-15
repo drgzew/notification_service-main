@@ -8,5 +8,5 @@ import (
 
 func InitNotificationProducer(cfg *config.Config) *kafka.NotificationProducer {
 	brokers := []string{fmt.Sprintf("%s:%d", cfg.Kafka.Host, cfg.Kafka.Port)}
-	return kafka.NewNotificationProducer(brokers, cfg.Kafka.EventNotificationTopic)
+	return kafka.NewNotificationProducer(brokers, &cfg.Kafka)
 }

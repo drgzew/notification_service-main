@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"notification_service/internal/models"
-	notifications "notification_service/internal/services/notifications"
+	"notification_service/internal/services/notifications"
 )
 
 type NotificationProcessor struct {
@@ -15,7 +15,7 @@ func NewNotificationProcessor(s notifications.NotificationServiceInterface) *Not
 	return &NotificationProcessor{service: s}
 }
 
-func (p *NotificationProcessor) Handle(ctx context.Context, notification *models.Notification) error {
+func (p *NotificationProcessor) HandleNotification(ctx context.Context, notification *models.Notification) error {
 	fmt.Printf("Обрабатываем уведомление ID=%s для %s: %s\n",
 		notification.ID, notification.Recipient, notification.Message)
 
@@ -24,4 +24,10 @@ func (p *NotificationProcessor) Handle(ctx context.Context, notification *models
 	}
 
 	return nil
+}
+
+func (p *NotificationProcessor) HandleNotificationStatus(ctx context.Context, status *models.NotificationStatus) error {
+	fmt.Printf("Обрабатываем статус уведомления ID=%s: %s\n",
+		status.NotificationID, status.Status)
+	return nil // пока просто логируем
 }

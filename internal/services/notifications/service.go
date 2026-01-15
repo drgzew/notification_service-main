@@ -35,82 +35,39 @@ func NewNotificationService(
 }
 
 func (s *NotificationService) SendNotification(ctx context.Context, n *models.Notification) error {
-	status := &models.NotificationStatus{
-		NotificationID: n.ID,
-		Status:         "PENDING",
-	}
+    if err := s.storage.AddNotification(ctx, n); err != nil {
+        return err
+    }
 
-	if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
-		return err
-	}
+    status := &models.NotificationStatus{
+        NotificationID: n.ID,
+        Status:         "PENDING",
+    }
+    if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
+        return err
+    }
 
-	if err := s.storage.AddNotification(ctx, n); err != nil {
-		return err
-	}
+    err := s.producer.SendNotification(ctx, n)
+    if err != nil {
+        status.Status = "FAILED"
+        status.ErrorMessage = err.Error()
+        log.Printf("Failed to send notification ID=%s: %v", n.ID, err)
+    } else {
+        status.Status = "SENT"
+        now := time.Now()
+        status.SentAt = &now
+        log.Printf("Notification ID=%s sent successfully", n.ID)
+    }
 
-	err := s.producer.SendNotification(ctx, n)
-	if err != nil {
-		status.Status = "FAILED"
-		status.ErrorMessage = err.Error()
-		log.Printf("Failed to send notification ID=%s: %v", n.ID, err)
-	} else {
-		status.Status = "SENT"
-		now := time.Now()
-		status.SentAt = &now
-		log.Printf("Notification ID=%s sent successfully", n.ID)
-	}
+    if err := s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status}); err != nil {
+        return err
+    }
 
-	return s.storage.UpdateNotificationStatus(ctx, []*models.NotificationStatus{status})
-}
+    if err := s.producer.SendNotificationStatus(ctx, status); err != nil {
+        log.Printf("Failed to send notification status to Kafka for ID=%s: %v", n.ID, err)
+    }
 
-func (s *NotificationService) SendBatch(ctx context.Context, notifications []*models.Notification) error {
-	total := len(notifications)
-	for i := 0; i < total; i += s.batchSize {
-		end := i + s.batchSize
-		if end > total {
-			end = total
-		}
-		batch := notifications[i:end]
-
-		batchStatuses := make([]*models.NotificationStatus, len(batch))
-		for j, n := range batch {
-			batchStatuses[j] = &models.NotificationStatus{
-				NotificationID: n.ID,
-				Status:         "PENDING",
-			}
-		}
-
-		if err := s.storage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(s.timeout):
-		}
-
-		for j, n := range batch {
-			err := s.producer.SendNotification(ctx, n)
-			status := batchStatuses[j]
-
-			if err != nil {
-				status.Status = "FAILED"
-				status.ErrorMessage = err.Error()
-				log.Printf("Failed to send notification ID=%s: %v", n.ID, err)
-			} else {
-				status.Status = "SENT"
-				now := time.Now()
-				status.SentAt = &now
-				log.Printf("Notification ID=%s sent successfully", n.ID)
-			}
-		}
-
-		if err := s.storage.UpdateNotificationStatus(ctx, batchStatuses); err != nil {
-			return err
-		}
-	}
-	return nil
+    return nil
 }
 
 func (s *NotificationService) Handle(ctx context.Context, n *models.Notification) error {
